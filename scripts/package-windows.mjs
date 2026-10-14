@@ -1,0 +1,14 @@
+import { cp, mkdir, writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+if (process.platform !== 'win32') throw Error('請在 Windows 執行，以封裝 Windows Node 執行環境。');
+const target = resolve('release/drugmap-offline-windows');
+await mkdir(resolve(target, 'scripts'), { recursive: true });
+await cp('out', resolve(target, 'out'), { recursive: true });
+await cp('scripts/server.mjs', resolve(target, 'scripts/server.mjs'));
+await cp(process.execPath, resolve(target, 'node.exe'));
+await cp('LICENSE', resolve(target, 'LICENSE'));
+await cp('README.md', resolve(target, 'README.md'));
+await cp('THIRD_PARTY_NOTICES.md', resolve(target, 'THIRD_PARTY_NOTICES.md'));
+await cp('NODE-LICENSE.txt', resolve(target, 'NODE-LICENSE.txt'));
+await writeFile(resolve(target, 'Start.cmd'), '@echo off\r\ncd /d "%~dp0"\r\nstart "" "http://127.0.0.1:3210"\r\nnode.exe scripts\\server.mjs\r\npause\r\n');
+console.log(`離線包已建立：${target}`);

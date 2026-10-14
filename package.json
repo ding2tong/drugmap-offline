@@ -1,0 +1,30 @@
+{
+  "name": "drugmap-offline",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "node scripts/server.mjs",
+    "lint": "eslint .",
+    "test": "node --test tests/*.test.mjs",
+    "sync:nhi": "node scripts/sync-nhi.mjs",
+    "package:windows": "node scripts/package-windows.mjs"
+  },
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.1.13",
+    "next": "15.5.25",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "tailwindcss": "^4.1.13",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.21",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "eslint": "^9.34.0",
+    "eslint-config-next": "15.5.25",
+    "typescript": "^5.8.3"
+  }
+}
