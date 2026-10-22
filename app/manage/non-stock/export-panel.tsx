@@ -1,13 +1,14 @@
 "use client";
 
 import { useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 type ExportDrug = { id: string; nhiCode: string; englishName: string; chineseName: string };
 type Draft = ExportDrug & { checked: boolean };
 const button = 'min-h-11 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-slate-700 disabled:opacity-50';
 const fields = [{ key: 'nhiCode', label: '健保碼' }, { key: 'englishName', label: '英文名' }, { key: 'chineseName', label: '中文名' }] as const;
 
-export default function ExportPanel({ drugs, loaded }: { drugs: ExportDrug[]; loaded: boolean }) {
+export default function ExportPanel({ drugs, loaded, toolbar }: { drugs: ExportDrug[]; loaded: boolean; toolbar: HTMLElement | null }) {
  const [rows, setRows] = useState<Draft[] | null>(null);
  const [query, setQuery] = useState('');
  const [busy, setBusy] = useState(false);
@@ -46,8 +47,8 @@ export default function ExportPanel({ drugs, loaded }: { drugs: ExportDrug[]; lo
   finally { setBusy(false); }
  }
 
- return <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
-  <button ref={trigger} type="button" className={button} disabled={!loaded || !drugs.length || rows !== null} onClick={open}>匯出少用藥品</button>
+ return <>{toolbar && createPortal(<button ref={trigger} type="button" className={button} disabled={!loaded || !drugs.length || rows !== null} onClick={open}>匯出</button>, toolbar)}
+  {rows !== null && <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
   {rows !== null && <section aria-label="編輯匯出內容" className="mt-4 space-y-4">
    <h3 className="text-lg font-bold">勾選並編輯匯出內容</h3>
    <p className="text-sm text-slate-600">匯出欄位：健保碼、英文名、中文名。下方修改只用於本次匯出，不會修改藥品資料；關閉後不保留草稿。</p>
@@ -58,11 +59,11 @@ export default function ExportPanel({ drugs, loaded }: { drugs: ExportDrug[]; lo
     <p role="status" className="text-sm text-slate-600">已勾選 {selected.length} / {rows.length} 筆（搜尋顯示 {visible.length} 筆）</p>
    </div>
    <p className="text-sm text-slate-600">搜尋不會清除勾選，匯出會包含所有已勾選品項。</p>
-   <div className="max-h-[32rem] space-y-3 overflow-y-auto rounded-xl p-1">
-    {visible.map(row => <fieldset key={row.id} disabled={busy} className="min-w-0 rounded-xl border border-slate-300 p-3">
+   <div className="max-h-[32rem] space-y-2 overflow-y-auto rounded-xl p-1">
+    {visible.map(row => <fieldset key={row.id} disabled={busy} className="grid min-w-0 grid-cols-1 items-end gap-2 rounded-xl border border-slate-300 bg-white p-3 sm:grid-cols-2 lg:grid-cols-[5rem_minmax(9rem,1fr)_minmax(12rem,2fr)_minmax(10rem,1.5fr)]">
      <legend className="sr-only">{row.nhiCode} {row.chineseName || row.englishName}</legend>
-     <label className="flex min-h-11 cursor-pointer items-center gap-3 font-semibold"><input className="h-5 w-5 accent-slate-900" type="checkbox" checked={row.checked} onChange={event => update(row.id, { checked: event.target.checked })} />匯出此品項<span className="text-sm font-normal text-slate-600">{row.nhiCode}</span></label>
-     <div className="grid gap-3 lg:grid-cols-[1fr_2fr_2fr]">{fields.map(field => <label key={field.key} className="min-w-0 text-sm font-semibold">{field.label}<input className="control" value={row[field.key]} onChange={event => update(row.id, { [field.key]: event.target.value })} /></label>)}</div>
+     <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm font-semibold lg:self-end"><input className="h-5 w-5 shrink-0 accent-slate-900" type="checkbox" checked={row.checked} onChange={event => update(row.id, { checked: event.target.checked })} aria-label={`匯出 ${row.chineseName || row.englishName}`} />匯出</label>
+     {fields.map(field => <label key={field.key} className="min-w-0 text-sm font-semibold">{field.label}<input className="control" value={row[field.key]} onChange={event => update(row.id, { [field.key]: event.target.value })} /></label>)}
     </fieldset>)}
     {!visible.length && <p className="p-4 text-center text-slate-600">沒有符合搜尋條件的品項。</p>}
    </div>
@@ -72,5 +73,5 @@ export default function ExportPanel({ drugs, loaded }: { drugs: ExportDrug[]; lo
     <button type="button" className={button} disabled={busy} onClick={close}>關閉匯出</button>
    </div>
   </section>}
- </div>;
+ </div>}</>;
 }

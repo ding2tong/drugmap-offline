@@ -1,7 +1,12 @@
-import { cp, mkdir, writeFile } from 'node:fs/promises';
+import { cp, mkdir, writeFile, readFile, access } from 'node:fs/promises';
 import { resolve } from 'node:path';
 if (process.platform !== 'win32') throw Error('請在 Windows 執行，以封裝 Windows Node 執行環境。');
-const target = resolve('release/drugmap-offline-windows');
+const { version } = JSON.parse(await readFile('package.json', 'utf8'));
+if (!/^\d+\.\d+\.\d+$/.test(version)) throw Error('Invalid release version');
+const target = resolve(`release/v${version}/drugmap-offline-windows`);
+let containsUserData = false;
+try { await access(resolve(target, 'data')); containsUserData = true; } catch (error) { if (error.code !== 'ENOENT') throw error; }
+if (containsUserData) throw Error('封裝目錄含有使用者 data，請先備份並改用乾淨的封裝目錄。');
 await mkdir(resolve(target, 'scripts'), { recursive: true });
 await cp('out', resolve(target, 'out'), { recursive: true });
 await cp('scripts/server.mjs', resolve(target, 'scripts/server.mjs'));

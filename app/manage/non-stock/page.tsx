@@ -40,6 +40,7 @@ function NonStock() {
  const [quantityUnit, setQuantityUnit] = useState('顆');
  const [busy, setBusy] = useState(false);
  const [message, setMessage] = useState('');
+ const [toolbar, setToolbar] = useState<HTMLDivElement | null>(null);
  const dialogRef = useRef<HTMLDialogElement>(null);
  const addButtonRef = useRef<HTMLButtonElement>(null);
  const editButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -110,7 +111,7 @@ function NonStock() {
      const base = getNhiCodeBase(selected.nhiCode);
      const ref = doc(firestore, 'drugs', `rare-nhi-${base}`);
      if ((await transaction.get(ref)).exists() || drugs.some(drug => drug.inventoryKind === 'non-stock' && getNhiCodeBase(drug.nhiCode ?? '') === base)) throw Error('此藥品已收納為少用藥品，請編輯收納資料。');
-     transaction.set(ref, { ...selected, inventoryKind: 'non-stock', nhiCodeBase: base, nhiCodeVariants: [selected.nhiCode], internalCode: '', track: '', cabinet: '', layer: 0, placementStatus: 'non-stock', inventoryLocationId: location.id, inventoryLocation: location.name, remark: remark.trim(), quantity: amount, quantityUnit: quantityUnit.trim(), searchKeywords: [selected.chineseName, selected.englishName, ...getNhiSearchAliases([selected.nhiCode])].map(value => value.toLowerCase()), source: 'https://data.gov.tw/dataset/23715', sourceSyncedAt: catalog?.syncedAt ?? '', createdAt: new Date(), updatedAt: new Date() });
+     transaction.set(ref, { ...selected, inventoryKind: 'non-stock', nhiCodeBase: base, nhiCodeVariants: [selected.nhiCode], internalCode: '', track: '', cabinet: '', layer: 0, placementStatus: 'non-stock', inventoryLocationId: location.id, inventoryLocation: location.name, remark: remark.trim(), quantity: amount, quantityUnit: quantityUnit.trim(), inventoryCheckedCycle: cycleId, searchKeywords: [selected.chineseName, selected.englishName, ...getNhiSearchAliases([selected.nhiCode])].map(value => value.toLowerCase()), source: 'https://data.gov.tw/dataset/23715', sourceSyncedAt: catalog?.syncedAt ?? '', createdAt: new Date(), updatedAt: new Date() });
     });
    }
    closeDialog(); setMessage(editing ? '收納資料已更新。' : '藥品已加入下方清單。');
@@ -137,13 +138,13 @@ function NonStock() {
   <div className="mx-auto max-w-6xl space-y-5 p-4 sm:p-6">
    {message && !dialogMode && <p role="status" className="rounded-xl border border-slate-300 bg-white p-4">{message}</p>}
    <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
-    <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-bold">籃內藥品盤點</h2><p className="mt-1 text-sm text-slate-600">逐筆確認仍有的藥品，直接更新數量。勾選狀態會保留到下一輪盤點。</p></div><div className="flex flex-wrap gap-2"><button ref={addButtonRef} type="button" className={primaryButton} disabled={!loaded || busy} onClick={() => { editButtonRef.current = null; setDialogMode('search'); setMessage(''); }}>新增藥品</button><button type="button" className={button} disabled={!loaded || !cycleLoaded || busy || !saved.length} onClick={startNewCycle}>開始新一輪盤點</button></div></div>
+    <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-bold">籃內藥品盤點</h2><p className="mt-1 text-sm text-slate-600">逐筆確認仍有的藥品，直接更新數量。勾選狀態會保留到下一輪盤點。</p></div><div className="flex flex-wrap gap-2"><button ref={addButtonRef} type="button" className={primaryButton} disabled={!loaded || !cycleLoaded || busy} onClick={() => { editButtonRef.current = null; setDialogMode('search'); setMessage(''); }}>新增藥品</button><div ref={setToolbar} className="flex flex-wrap gap-2" /><button type="button" className={button} disabled={!loaded || !cycleLoaded || busy || !saved.length} onClick={startNewCycle}>開始新一輪盤點</button></div></div>
     <p className="mt-3 text-sm font-semibold" role="status">已確認 {checkedCount} / {saved.length} 筆</p>
     <label className="mt-3 block text-sm font-semibold">搜尋已收納品項<input className="control" value={filter} onChange={event => setFilter(event.target.value)} placeholder="健保碼、藥名或收納位置" /></label>
     {!loaded || !cycleLoaded ? <p role="status" className="mt-4 text-sm text-slate-600">正在讀取已收納藥品…</p> : !visible.length ? <p className="mt-4 rounded-xl border border-dashed border-slate-300 p-6 text-center text-slate-600">{saved.length ? '沒有符合搜尋條件的藥品。' : '尚無少用藥品，請點選「新增藥品」。'}</p> : <ul className="mt-3 space-y-2">{visible.map(drug => <StockRow key={drug.id} drug={drug} cycleId={cycleId} onEdit={() => { editButtonRef.current = document.activeElement as HTMLButtonElement; choose(drug, drug.id); }} onRemove={() => remove(drug)} />)}</ul>}
    </section>
-   <BatchEditPanel drugs={saved} locations={locations} loaded={loaded} />
-   <ExportPanel drugs={saved} loaded={loaded} />
+   <BatchEditPanel drugs={saved} locations={locations} loaded={loaded} toolbar={toolbar} />
+   <ExportPanel drugs={saved} loaded={loaded} toolbar={toolbar} />
   </div>
 
   {dialogMode && <dialog ref={dialogRef} onClose={() => { setDialogMode(null); setSelected(null); setEditing(null); setQuery(''); requestAnimationFrame(() => (editButtonRef.current ?? addButtonRef.current)?.focus()); }} onCancel={event => { if (busy) event.preventDefault(); }} className="fixed inset-0 m-auto max-h-[calc(100dvh-2rem)] w-[min(48rem,calc(100vw-2rem))] max-w-none overflow-y-auto rounded-2xl border border-slate-300 bg-white p-4 text-slate-900 shadow-2xl backdrop:bg-slate-900/60 sm:p-6" aria-labelledby="non-stock-dialog-title">

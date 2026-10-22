@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { doc, writeBatch } from '../../../lib/local-store';
 import { db } from '../../../lib/local-store';
 
@@ -12,7 +13,7 @@ type Field = 'locationId' | 'quantity' | 'quantityUnit' | 'remark';
 const button = 'min-h-11 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-slate-700 disabled:opacity-50';
 const control = 'min-h-11 w-full rounded-lg border border-slate-300 bg-white px-2 text-sm focus-visible:outline-2 focus-visible:outline-slate-700 disabled:opacity-50';
 
-export default function BatchEditPanel({ drugs, locations, loaded }: { drugs: Drug[]; locations: Location[]; loaded: boolean }) {
+export default function BatchEditPanel({ drugs, locations, loaded, toolbar }: { drugs: Drug[]; locations: Location[]; loaded: boolean; toolbar: HTMLElement | null }) {
  const [rows, setRows] = useState<Row[] | null>(null);
  const [source, setSource] = useState<Map<string, Drug>>(new Map());
  const [filter, setFilter] = useState('');
@@ -76,15 +77,15 @@ export default function BatchEditPanel({ drugs, locations, loaded }: { drugs: Dr
     savedCount += Math.min(400, pending.length - start);
    }
    close(); setLastResult(`已批次更新 ${savedCount} 筆藥品。`);
-   // The parent list receives the updated data from its Firestore listener.
+   // The parent list receives the updated data from its local data listener.
   } catch {
    setMessage(savedCount ? `已儲存 ${savedCount} 筆，其餘儲存失敗。請重新開啟批次修改並確認。` : '批次儲存失敗，請確認本機服務仍在執行後重試。');
   } finally { setBusy(false); }
  }
 
- return <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
-  <button ref={trigger} type="button" className={button} disabled={!loaded || !drugs.length || rows !== null} onClick={open}>批次修改已收納藥品</button>
-  {lastResult && <p role="status" className="mt-3 text-sm text-slate-700">{lastResult}</p>}
+ return <>{toolbar && createPortal(<button ref={trigger} type="button" className={button} disabled={!loaded || !drugs.length || rows !== null} onClick={open}>批次修改</button>, toolbar)}
+  {(rows || lastResult) && <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+  {lastResult && <p role="status" className="text-sm text-slate-700">{lastResult}</p>}
   {rows && <div className="mt-4 space-y-4" aria-label="批次修改藥品">
    <div><h3 className="text-lg font-bold">勾選要修改的藥品</h3><p className="mt-1 text-sm text-slate-600">可逐筆編輯，也可將同一欄位套用至所有勾選品項。只有勾選且修改過的欄位會儲存。</p></div>
    <label className="block text-sm font-semibold">搜尋品項<input autoFocus className="control" value={filter} disabled={busy} onChange={event => setFilter(event.target.value)} placeholder="健保碼或藥名" /></label>
@@ -99,5 +100,5 @@ export default function BatchEditPanel({ drugs, locations, loaded }: { drugs: Dr
    {message && <p role="status" className="rounded-xl bg-slate-100 p-3 text-sm">{message}</p>}
    <div className="flex flex-wrap gap-2"><button type="button" className={button} disabled={busy || !selected.length} onClick={async () => { try { await save(); } catch (error) { setMessage(error instanceof Error ? error.message : '請確認修改內容。'); } }}>{busy ? '儲存中…' : `儲存勾選品項（${selected.length}）`}</button><button type="button" className={button} disabled={busy} onClick={close}>取消</button></div>
   </div>}
- </section>;
+ </section>}</>;
 }

@@ -35,7 +35,16 @@ test('local persistence, atomic batches, conflicts, backup, restore and origin p
     assert.equal(response.status, 409);
     assert.equal((await post('commit', { operations: [] }, { Origin: 'https://example.com' })).status, 403);
     assert.equal((await post('commit', { operations: [{ type: 'set', collection: 'drugs', id: '__proto__', data: {} }] })).status, 400);
+    // The existing v1 data shape accepts the new report without migration.
+    const legacyBackup = await state();
+    assert.equal((await post('restore', legacyBackup)).status, 200);
+    const report = { fileName: 'synthetic.xlsx', startDate: '2026-10-01', endDate: '2026-10-22', rowCount: 2, items: [{ code: 'BC250721', quantity: 12.5 }], updatedAt: '2026-10-22T00:00:00.000Z' };
+    assert.equal((await post('commit', { operations: [{ type: 'set', collection: 'settings', id: 'consumptionReport', data: report }] })).status, 200);
     const backup = await (await fetch(url + '/api/backup')).json();
+    assert.deepEqual(backup.collections.settings.consumptionReport, report);
+    await post('commit', { operations: [{ type: 'set', collection: 'settings', id: 'consumptionReport', data: { ...report, items: [{ code: 'AC123456', quantity: 1 }] } }] });
+    assert.equal((await state()).collections.settings.consumptionReport.items.length, 1);
+    assert.equal((await state()).collections.settings.consumptionReport.items[0].code, 'AC123456', 'new report replaces previous summary');
     assert.equal((await post('restore', { format: 'invalid' })).status, 400);
     await post('commit', { operations: [{ type: 'delete', collection: 'drugs', id: 'test' }] });
     assert.equal((await post('restore', backup)).status, 200);
@@ -49,6 +58,11 @@ test('local persistence, atomic batches, conflicts, backup, restore and origin p
     assert.equal(JSON.parse(await readFile(join(dir, 'database.json'), 'utf8')).collections.drugs.test.quantity, 5);
     assert.equal((await fetch(url + '/')).status, 200);
     assert.equal((await fetch(url + '/backup/')).status, 200);
+    assert.equal((await fetch(url + '/consumption/')).status, 200);
+    assert.deepEqual((await state()).collections.settings.consumptionReport, report, 'report survives restore and restart');
+    assert.equal((await post('commit', { operations: [{ type: 'delete', collection: 'settings', id: 'consumptionReport' }] })).status, 200);
+    assert.equal((await state()).collections.settings.consumptionReport, undefined);
+    assert.equal((await state()).collections.drugs.test.quantity, 5, 'clearing report preserves inventory');
     assert.equal((await fetch(url + '/data/database.json')).status, 404);
   } finally { if (child && child.exitCode === null) await stop(); await rm(dir, { recursive: true, force: true }); }
 });
