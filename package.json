@@ -1,13 +1,13 @@
 {
   "name": "drugmap-offline",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "node scripts/server.mjs",
     "lint": "eslint .",
-    "test": "node --test tests/*.test.mjs",
+    "test": "node --test tests/*.test.mjs && node scripts/test-purchase-draft.cjs && node scripts/test-purchase-bridge.cjs && node scripts/test-purchase-supplier.cjs",
     "sync:nhi": "node scripts/sync-nhi.mjs",
     "package:windows": "node scripts/package-windows.mjs"
   },

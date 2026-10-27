@@ -38,7 +38,7 @@ test('local persistence, atomic batches, conflicts, backup, restore and origin p
     // The existing v1 data shape accepts the new report without migration.
     const legacyBackup = await state();
     assert.equal((await post('restore', legacyBackup)).status, 200);
-    const report = { fileName: 'synthetic.xlsx', startDate: '2026-10-01', endDate: '2026-10-22', rowCount: 2, items: [{ code: 'BC250721', quantity: 12.5 }], updatedAt: '2026-10-22T00:00:00.000Z' };
+    const report = { fileName: 'synthetic.xlsx', startDate: '2026-10-01', endDate: '2026-10-22', rowCount: 2, items: [{ code: 'BC250721', quantity: 12.5 }], currentQuantities: { BC250721: 2 }, updatedAt: '2026-10-22T00:00:00.000Z' };
     assert.equal((await post('commit', { operations: [{ type: 'set', collection: 'settings', id: 'consumptionReport', data: report }] })).status, 200);
     const backup = await (await fetch(url + '/api/backup')).json();
     assert.deepEqual(backup.collections.settings.consumptionReport, report);
@@ -59,6 +59,8 @@ test('local persistence, atomic batches, conflicts, backup, restore and origin p
     assert.equal((await fetch(url + '/')).status, 200);
     assert.equal((await fetch(url + '/backup/')).status, 200);
     assert.equal((await fetch(url + '/consumption/')).status, 200);
+    assert.equal((await fetch(url + '/purchase/')).status, 200);
+    assert.equal((await fetch(url + '/purchase/setup/')).status, 200);
     assert.deepEqual((await state()).collections.settings.consumptionReport, report, 'report survives restore and restart');
     assert.equal((await post('commit', { operations: [{ type: 'delete', collection: 'settings', id: 'consumptionReport' }] })).status, 200);
     assert.equal((await state()).collections.settings.consumptionReport, undefined);

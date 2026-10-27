@@ -1,0 +1,34 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const vm = require("node:vm");
+const ts = require("typescript");
+const code = ts.transpileModule(fs.readFileSync("lib/purchase-draft.ts", "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
+const context = { exports: {} };
+vm.runInNewContext(code, context);
+const { lineTotal, purchaseTotals, selectPurchaseOffer, mergePurchaseCodes } = context.exports;
+const line = (code, changes = {}) => ({ id: code, code, supplier: "藥典", unit: "盒", quantity: "2", price: "1150", ...changes });
+
+assert.equal(lineTotal(line("AC150781")), 2300);
+assert.equal(lineTotal(line("AC150781", { quantity: "" })), null);
+assert.equal(lineTotal(line("AC150781", { quantity: "1.5" })), null);
+assert.equal(lineTotal(line("AC150781", { quantity: "9007199254740992" })), null);
+assert.equal(lineTotal(line("AC150781", { price: "-1" })), null);
+assert.equal(lineTotal(line("AC150781", { price: "0.001" })), null);
+const totals = purchaseTotals([line("AC150781", { markedInCart: true }), line("AC150782", { supplier: "高一", unit: "排", quantity: "3", price: "12" }), line("AC150783", { quantity: "" })]);
+assert.equal(totals.藥典.planned, 2300); assert.equal(totals.藥典.marked, 2300);
+assert.equal(totals.高一.planned, 36); assert.equal(totals.高一.marked, 0);
+assert.equal(purchaseTotals([line("AC150781", { quantity: "3", price: "0.1" }), line("AC150782", { quantity: "1", price: "5999.7" })]).藥典.planned, 6000);
+const merged = mergePurchaseCodes([line("AC150781")], [" ac150781 ", "AC150782", "AC150782", "bad"], (code) => line(code, { quantity: "", unit: "", price: "" }));
+assert.equal(merged.validCount, 2); assert.equal(merged.invalidCount, 1); assert.equal(merged.lines.length, 2); assert.equal(merged.lines[0].code, "AC150782"); assert.equal(merged.lines[0].quantity, ""); assert.equal(merged.lines[1].code, "AC150781");
+assert.equal(mergePurchaseCodes([line("AC150781G0")], ["AC150781"], line).lines.length, 1);
+assert.equal(mergePurchaseCodes([line("AC150781G0")], ["AC15078100"], line).lines.length, 2);
+assert.equal(mergePurchaseCodes([], ["15078", "1234"], line).validCount, 1);
+const offer = { code: "AC150781G0", name: "敵芬尼朵", unit: "盒", price: 1150, stock: "供貨中" };
+const old = line("AC150781", { selectedCode: offer.code, selectedName: offer.name, markedInCart: true });
+assert.equal(selectPurchaseOffer(old, "藥典", offer, "time").quantity, "2");
+assert.equal(selectPurchaseOffer(old, "藥典", offer, "time").markedInCart, true);
+assert.equal(selectPurchaseOffer(old, "藥典", { ...offer, price: 1200 }, "time").markedInCart, false);
+assert.equal(selectPurchaseOffer(old, "藥典", { ...offer, unit: "包" }, "time").quantity, "");
+assert.equal(selectPurchaseOffer(old, "高一", offer, "time").markedInCart, false);
+console.log("Purchase draft rules passed.");

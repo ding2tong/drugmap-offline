@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "藥品地圖單機版採購連接工具",
+  "version": "0.6.0",
+  "description": "在已登入的藥典與高一網站查詢商品，並將結果顯示於藥品地圖。",
+  "host_permissions": [
+    "http://www.yudan.com.tw/*",
+    "https://www.gaoipharma.com.tw/*",
+    "http://127.0.0.1/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://127.0.0.1/*"
+      ],
+      "js": [
+        "bridge.js"
+      ]
+    },
+    {
+      "matches": [
+        "http://www.yudan.com.tw/yudan_web_wt/*",
+        "https://www.gaoipharma.com.tw/*"
+      ],
+      "js": [
+        "supplier.js"
+      ]
+    }
+  ]
+}

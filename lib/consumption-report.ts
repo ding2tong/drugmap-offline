@@ -3,7 +3,7 @@ import { getNhiCodeBase } from "./nhi-code";
 
 export type ConsumptionRow = { date: string; code: string; quantity: number };
 export type ConsumptionItem = { code: string; quantity: number };
-export type ConsumptionReport = { fileName: string; startDate: string; endDate: string; rowCount: number; items: ConsumptionItem[]; updatedAt: string };
+export type ConsumptionReport = { fileName: string; startDate: string; endDate: string; rowCount: number; items: ConsumptionItem[]; currentQuantities?: Record<string, number>; updatedAt: string };
 
 function dateValue(value: unknown): string {
   let year: number, month: number, day: number;

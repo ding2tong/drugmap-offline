@@ -15,5 +15,10 @@ await cp('LICENSE', resolve(target, 'LICENSE'));
 await cp('README.md', resolve(target, 'README.md'));
 await cp('THIRD_PARTY_NOTICES.md', resolve(target, 'THIRD_PARTY_NOTICES.md'));
 await cp('NODE-LICENSE.txt', resolve(target, 'NODE-LICENSE.txt'));
+await mkdir(resolve(target, 'browser-extension'), { recursive: true });
+for (const file of ['manifest.json', 'background.js', 'bridge.js', 'supplier.js', 'README.md']) {
+  await cp(resolve('browser-extension', file), resolve(target, 'browser-extension', file));
+}
+
 await writeFile(resolve(target, 'Start.cmd'), '@echo off\r\ncd /d "%~dp0"\r\nstart "" "http://127.0.0.1:3210"\r\nnode.exe scripts\\server.mjs\r\npause\r\n');
 console.log(`離線包已建立：${target}`);
